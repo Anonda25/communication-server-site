@@ -57,7 +57,19 @@ async function run() {
                 req.decoded = decoded
                 next()
             })
-         
+
+        }
+
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            console.log(email);
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            const isAdmin = user?.role === 'admin';
+            if (!isAdmin) {
+                return res.status(403).send({ message: 'forbidden' });
+            }
+            next()
         }
         // Generate jwt token
         app.post('/jwt', async (req, res) => {
@@ -65,29 +77,15 @@ async function run() {
             const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
                 expiresIn: '365d',
             })
-            res.send({token})
+            res.send({ token })
         })
 
-       
-        app.get('/users', verifyToken, async (req, res) => {
-            
+
+        app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
+
             const result = await usersCollection.find().toArray()
             res.send(result)
         })
-
-        app.patch('/users/admin/:id',  async (req, res) => {
-
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) }
-            const updateDoc = {
-                $set: {
-                    role: 'admin'
-                }
-            }
-            const result = await usersCollection.updateOne(query, updateDoc)
-            res.send(result)
-        })
-        
         app.get('/users/admin/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
             if (email !== req.decoded.email) {
@@ -102,6 +100,21 @@ async function run() {
             }
             res.send({ admin })
         })
+
+        app.patch('/users/admin/:id', verifyToken, verifyAdmin, async (req, res) => {
+
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    role: 'admin'
+                }
+            }
+            const result = await usersCollection.updateOne(query, updateDoc)
+            res.send(result)
+        })
+
+
         // save or update a user in db
         app.post('/users', async (req, res) => {
             const user = req.body
@@ -119,9 +132,8 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/users/:email',  async(req,res)=>{
+        app.get('/users/:email', async (req, res) => {
             const email = req.params.email;
-
             const query = { email }
             const result = await usersCollection.findOne(query)
             res.send(result)
@@ -143,7 +155,7 @@ async function run() {
             const result = await postsCollection.findOne(query);
             res.send(result)
         })
-        app.get('/posts/email/:email',  async (req, res) => {
+        app.get('/posts/email/:email', async (req, res) => {
             const email = req.params.email;
             const query = { userEmail: email };
             const result = await postsCollection.find(query).sort({ time: -1 }).toArray();
@@ -151,7 +163,7 @@ async function run() {
         })
 
         // Fetch post count for a specific user
-        app.get('/posts/count/:email',  async (req, res) => {
+        app.get('/posts/count/:email', async (req, res) => {
             const email = req.params.email;
             const query = { userEmail: email };
             const count = await postsCollection.countDocuments(query);
@@ -166,7 +178,7 @@ async function run() {
             res.send(result)
         })
         // Increment upVote by 1
-        app.patch('/posts/upvote/:id',  async (req, res) => {
+        app.patch('/posts/upvote/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const update = { $inc: { upVote: 1 } };
@@ -181,6 +193,13 @@ async function run() {
             const result = await postsCollection.findOneAndUpdate(query, update);
             res.send(result);
         });
+        //delete the api single id
+        app.delete('/posts/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await postsCollection.deleteOne(query);
+            res.send(result)
+        })
 
 
         //comment related api 
@@ -190,11 +209,15 @@ async function run() {
             res.send(result)
         })
 
-        app.post('/comments',  async (req, res) => {
+        app.post('/comments', async (req, res) => {
             const query = req.body;
             const result = await commentsCollection.insertOne(query);
             res.send(result)
         })
+
+
+
+        //comment end
 
 
 
