@@ -41,6 +41,7 @@ async function run() {
         const postsCollection = db.collection('posts')
         const commentsCollection = db.collection('comments')
         const usersCollection = db.collection('users')
+        const AnnouncementCollection = db.collection('Announcements')
 
 
         // user related api 
@@ -79,8 +80,13 @@ async function run() {
             })
             res.send({ token })
         })
-
-
+       //ap rel \\
+        app.get('/user/:email', async(req, res)=>{
+            const email = req.params.email;
+            const query = {email: email}
+            const result = await usersCollection.findOne(query);
+            res.send(result)
+        })
         app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
 
             const result = await usersCollection.find().toArray()
@@ -131,13 +137,8 @@ async function run() {
             })
             res.send(result)
         })
-
-        app.get('/users/:email', async (req, res) => {
-            const email = req.params.email;
-            const query = { email }
-            const result = await usersCollection.findOne(query)
-            res.send(result)
-        })
+       
+       
         //post relatied api
         app.get('/posts', async (req, res) => {
             const { sherchprams } = req.query;
@@ -148,6 +149,32 @@ async function run() {
             const result = await postsCollection.find(option).sort({ time: -1 }).toArray();
             res.send(result)
         })
+
+
+        app.get('/posts/popularity', async (req, res) => {
+            const { search, sortByPopularity } = req.query;
+            
+            const query = search ? { tag: { $regex: search, $options: 'i' } } : {};
+
+            let result = [];
+            if (sortByPopularity === 'true') {
+
+                result = await postsCollection.aggregate([
+                    {
+                        $addFields: {
+                            voteDifference: { $subtract: ["$upVote", "$downVote"] },
+                        },
+                    },
+                    { $match: query },
+                    { $sort: { voteDifference: -1 } },
+                ]).toArray();
+            } else {
+                result = await postsCollection.find(query).sort({ carentTime: 1 }).toArray();
+
+
+            }
+            res.send(result);
+        });
         //get the single data 
         app.get('/posts/id/:id', async (req, res) => {
             const id = req.params.id;
@@ -171,7 +198,7 @@ async function run() {
 
 
         });
-
+        // post the data
         app.post('/posts', async (req, res) => {
             const query = req.body;
             const result = await postsCollection.insertOne(query);
@@ -219,7 +246,18 @@ async function run() {
 
         //comment end
 
+        //AnnouncementCollection api 
 
+        app.post('/Announcements', async(req, res)=>{
+            const query = req.body;
+            const result = await AnnouncementCollection.insertOne(query)
+            res.send(result)
+        })
+
+        app.get('/Announcements', async (req, res) => {
+            const result = await AnnouncementCollection.find().toArray();
+            res.send(result)
+        });
 
 
 
