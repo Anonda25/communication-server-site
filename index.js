@@ -236,14 +236,17 @@ async function run() {
             res.send(result)
         })
 
+       
+
         app.post('/comments', async (req, res) => {
-            const query = req.body;
+            const query = req.body
             const result = await commentsCollection.insertOne(query);
             res.send(result)
         })
 
 
-
+        
+       
         //comment end
 
         //AnnouncementCollection api 
