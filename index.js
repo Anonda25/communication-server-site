@@ -80,8 +80,8 @@ async function run() {
             })
             res.send({ token })
         })
-       //ap rel \\
-       
+        //ap rel \\
+
         app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
 
             const result = await usersCollection.find().toArray()
@@ -95,7 +95,7 @@ async function run() {
             res.send(result)
         })
 
-        
+
 
 
         // Update user badge
@@ -105,9 +105,10 @@ async function run() {
                 { email },
                 { $set: { Badge: 'Gold' } }
             );
-            result.modifiedCount > 0
-                ? res.send({ message: 'Badge updated successfully' })
-                : res.status(404).send({ message: 'User not found or badge unchanged' });
+            // result.modifiedCount > 0
+            //     ? res.send({ message: 'Badge updated successfully' })
+            //     : res.status(404).send({ message: 'User not found or badge unchanged' });
+            res.send(result)
         });
 
 
@@ -157,43 +158,60 @@ async function run() {
             })
             res.send(result)
         })
-       
-       
+
+
         //post relatied api
-        app.get('/posts', async (req, res) => {
-            const { sherchprams } = req.query;
-            let option = {}
-            if (sherchprams) {
-                option = { tag: { $regex: sherchprams, $options: 'i' } }
-            }
-            const result = await postsCollection.find(option).sort({ time: -1 }).toArray();
-            res.send(result)
-        })
+        // app.get('/posts', async (req, res) => {
+        //     const { sherchprams } = req.query;
+        //     let option = {}
+        //     if (sherchprams) {
+        //         option = { tag: { $regex: sherchprams, $options: 'i' } }
+        //     }
+        //     const result = await postsCollection.find(option).sort({ time: -1 }).toArray();
+        //     res.send(result)
+        // })
 
 
         app.get('/posts/popularity', async (req, res) => {
-            const { search, sortByPopularity } = req.query;
-            
-            const query = search ? { tag: { $regex: search, $options: 'i' } } : {};
+                const { search = "", sortByPopularity = "false" } = req.query;
+                const page = parseInt(req.query.page) || 0; 
+                const size = parseInt(req.query.size) || 5; 
 
-            let result = [];
-            if (sortByPopularity === 'true') {
+                console.log('Pagination:', { page, size, search, sortByPopularity });
 
-                result = await postsCollection.aggregate([
-                    {
-                        $addFields: {
-                            voteDifference: { $subtract: ["$upVote", "$downVote"] },
+               
+                const query = search ? { tag: { $regex: search, $options: 'i' } } : {};
+
+                let result;
+                if (sortByPopularity === "true") {
+                   
+                    result = await postsCollection.aggregate([
+                        {
+                            $addFields: {
+                                voteDifference: { $subtract: ["$upVote", "$downVote"] },
+                            },
                         },
-                    },
-                    { $match: query },
-                    { $sort: { voteDifference: -1 } },
-                ]).toArray();
-            } else {
-                result = await postsCollection.find(query).sort({ carentTime: 1 }).toArray();
+                        { $match: query },
+                        { $sort: { voteDifference: -1 } }, 
+                        { $skip: page * size },         
+                        { $limit: size },                 
+                    ]).toArray();
+                } else {
+                    
+                    result = await postsCollection.find(query)
+                        .sort({ carentTime: 1 })           
+                        .skip(page * size)                
+                        .limit(size)                  
+                        .toArray();
+                }
 
+                   const totalPosts = await postsCollection.countDocuments(query);
 
-            }
-            res.send(result);
+                res.send({
+                    posts: result,
+                    totalPosts,
+                });
+            
         });
         //get the single data 
         app.get('/posts/id/:id', async (req, res) => {
@@ -256,13 +274,13 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/comments/:postId', async (req, res) => {
-            const postId = req.params.postId;
-      
-            const query = { postId: new ObjectId(postId) };
-            const result = await commentsCollection.findOne(query)
-            res.send(result)
-        })
+        // app.get('/comments/:postId', async (req, res) => {
+        //     const postId = req.params.postId;
+
+        //     const query = { postId: new ObjectId(postId) };
+        //     const result = await commentsCollection.findOne(query)
+        //     res.send(result)
+        // })
 
         app.post('/comments', async (req, res) => {
             const query = req.body
@@ -271,13 +289,13 @@ async function run() {
         })
 
 
-        
-       
+
+
         //comment end
 
         //AnnouncementCollection api 
 
-        app.post('/Announcements', async(req, res)=>{
+        app.post('/Announcements', async (req, res) => {
             const query = req.body;
             const result = await AnnouncementCollection.insertOne(query)
             res.send(result)
@@ -306,9 +324,27 @@ async function run() {
             res.send({
                 clientSecret: paymentIntent.client_secret
             })
-            
+
         })
 
+        //pagination 
+        app.get('/pagination', async (req, res) => {
+            const TotalPost = await postsCollection.estimatedDocumentCount();
+            res.send({ TotalPost })
+        })
+
+
+        //admin -status
+        app.get('/admin-stats', async (req, res) => {
+            const Alluser = await usersCollection.estimatedDocumentCount();
+            const AllPost = await postsCollection.estimatedDocumentCount();
+            const AllComment = await commentsCollection.estimatedDocumentCount();
+            res.send({
+                Alluser,
+                AllPost,
+                AllComment
+            })
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
