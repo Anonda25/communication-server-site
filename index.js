@@ -4,7 +4,7 @@ const cors = require('cors');
 const port = process.env.PORT || 9000;
 const jwt = require('jsonwebtoken')
 const app = express();
-// const cookieParser = require('cookie-parser')
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const { MongoClient, ServerApiVersion, ObjectId, } = require('mongodb');
 
 //middlewere
@@ -81,17 +81,37 @@ async function run() {
             res.send({ token })
         })
        //ap rel \\
-        app.get('/user/:email', async(req, res)=>{
-            const email = req.params.email;
-            const query = {email: email}
-            const result = await usersCollection.findOne(query);
-            res.send(result)
-        })
+       
         app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
 
             const result = await usersCollection.find().toArray()
             res.send(result)
         })
+
+        app.get('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email }
+            const result = await usersCollection.findOne(query);
+            res.send(result)
+        })
+
+        
+
+
+        // Update user badge
+        app.patch('/users/badge/:email', async (req, res) => {
+            const email = req.params.email;
+            const result = await usersCollection.updateOne(
+                { email },
+                { $set: { Badge: 'Gold' } }
+            );
+            result.modifiedCount > 0
+                ? res.send({ message: 'Badge updated successfully' })
+                : res.status(404).send({ message: 'User not found or badge unchanged' });
+        });
+
+
+
         app.get('/users/admin/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
             if (email !== req.decoded.email) {
@@ -236,7 +256,13 @@ async function run() {
             res.send(result)
         })
 
-       
+        app.get('/comments/:postId', async (req, res) => {
+            const postId = req.params.postId;
+      
+            const query = { postId: new ObjectId(postId) };
+            const result = await commentsCollection.findOne(query)
+            res.send(result)
+        })
 
         app.post('/comments', async (req, res) => {
             const query = req.body
@@ -264,6 +290,24 @@ async function run() {
 
 
 
+
+        //PAYMENT RELATED API
+
+        app.post('/payment', async (req, res) => {
+            const { price } = req.body;
+            const Amount = parseInt(price * 100);
+
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: Amount,
+                currency: 'usd',
+                payment_method_types: ['card']
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
+            
+        })
 
 
         // Send a ping to confirm a successful connection
