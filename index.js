@@ -42,7 +42,9 @@ async function run() {
         const commentsCollection = db.collection('comments')
         const usersCollection = db.collection('users')
         const AnnouncementCollection = db.collection('Announcements')
-
+        const reportedsCollection = db.collection('reporteds')
+        const tagsCollection = db.collection('tags')
+        
 
         // user related api 
         const verifyToken = (req, res, next) => {
@@ -105,9 +107,7 @@ async function run() {
                 { email },
                 { $set: { Badge: 'Gold' } }
             );
-            // result.modifiedCount > 0
-            //     ? res.send({ message: 'Badge updated successfully' })
-            //     : res.status(404).send({ message: 'User not found or badge unchanged' });
+            
             res.send(result)
         });
 
@@ -160,17 +160,6 @@ async function run() {
         })
 
 
-        //post relatied api
-        // app.get('/posts', async (req, res) => {
-        //     const { sherchprams } = req.query;
-        //     let option = {}
-        //     if (sherchprams) {
-        //         option = { tag: { $regex: sherchprams, $options: 'i' } }
-        //     }
-        //     const result = await postsCollection.find(option).sort({ time: -1 }).toArray();
-        //     res.send(result)
-        // })
-
 
         app.get('/posts/popularity', async (req, res) => {
                 const { search = "", sortByPopularity = "false" } = req.query;
@@ -214,6 +203,11 @@ async function run() {
             
         });
         //get the single data 
+
+        app.get('/posts', async(req, res)=>{
+            const result = await postsCollection.find().toArray();
+            res.send(result)
+        })
         app.get('/posts/id/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -269,18 +263,16 @@ async function run() {
 
         //comment related api 
 
-        app.get('/comments', async (req, res) => {
+        app.get('/comments', verifyToken, async (req, res) => {
             const result = await commentsCollection.find().toArray();
             res.send(result)
         })
 
-        // app.get('/comments/:postId', async (req, res) => {
-        //     const postId = req.params.postId;
-
-        //     const query = { postId: new ObjectId(postId) };
-        //     const result = await commentsCollection.findOne(query)
-        //     res.send(result)
-        // })
+        app.post('/comments', async (req, res) => {
+            const query = req.body;
+            const result = await reportedsCollection.insertOne(query)
+            res.send(result)
+        })
 
         app.post('/comments', async (req, res) => {
             const query = req.body
@@ -334,17 +326,17 @@ async function run() {
         })
 
 
-        //admin -status
-        app.get('/admin-stats', async (req, res) => {
-            const Alluser = await usersCollection.estimatedDocumentCount();
-            const AllPost = await postsCollection.estimatedDocumentCount();
-            const AllComment = await commentsCollection.estimatedDocumentCount();
-            res.send({
-                Alluser,
-                AllPost,
-                AllComment
-            })
+        // tag 
+        app.get('/tags', async(req, res)=>{
+            const result = await tagsCollection.find().toArray()
+            res.send(result)
         })
+
+    app.post('/tags', async(req, res)=>{
+        const query = req.body;
+        const result = await tagsCollection.insertOne(query);
+        res.send(result)
+    })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
