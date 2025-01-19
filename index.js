@@ -267,8 +267,12 @@ async function run() {
             const result = await commentsCollection.find().toArray();
             res.send(result)
         })
+        app.get('/reported', verifyToken, async (req, res) => {
+            const result = await reportedsCollection.find().toArray();
+            res.send(result)
+        })
 
-        app.post('/comments', async (req, res) => {
+        app.post('/reported', async (req, res) => {
             const query = req.body;
             const result = await reportedsCollection.insertOne(query)
             res.send(result)
