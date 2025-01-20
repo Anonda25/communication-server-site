@@ -169,15 +169,10 @@ async function run() {
             const { search = "", sortByPopularity = "false" } = req.query;
             const page = parseInt(req.query.page) || 0;
             const size = parseInt(req.query.size) || 5;
-
             console.log('Pagination:', { page, size, search, sortByPopularity });
-
-
             const query = search ? { tag: { $regex: search, $options: 'i' } } : {};
-
             let result;
             if (sortByPopularity === "true") {
-
                 result = await postsCollection.aggregate([
                     {
                         $addFields: {
@@ -190,16 +185,13 @@ async function run() {
                     { $limit: size },
                 ]).toArray();
             } else {
-
                 result = await postsCollection.find(query)
                     .sort({ carentTime: 1 })
                     .skip(page * size)
                     .limit(size)
                     .toArray();
             }
-
             const totalPosts = await postsCollection.countDocuments(query);
-
             res.send({
                 posts: result,
                 totalPosts,
