@@ -164,7 +164,7 @@ async function run() {
         })
 
 
-
+        // post related api
         app.get('/posts/popularity', async (req, res) => {
             const { search = "", sortByPopularity = "false" } = req.query;
             const page = parseInt(req.query.page) || 0;
@@ -274,13 +274,13 @@ async function run() {
             const result = await reportedsCollection.deleteOne(query);
             res.send(result)
         })
-
+        // reported related api
         app.post('/reported', verifyToken, async (req, res) => {
             const query = req.body;
             const result = await reportedsCollection.insertOne(query)
             res.send(result)
         })
-
+        // comment related api
         app.post('/comments', async (req, res) => {
             const query = req.body
             const result = await commentsCollection.insertOne(query);
@@ -305,7 +305,7 @@ async function run() {
             res.send(result)
         });
 
-
+        //AnnouncementCollection api end
 
 
         //PAYMENT RELATED API
@@ -333,7 +333,7 @@ async function run() {
         })
 
 
-        // tag 
+        // tag related api
         app.get('/tags', async (req, res) => {
             const result = await tagsCollection.find().toArray()
             res.send(result)
