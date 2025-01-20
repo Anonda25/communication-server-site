@@ -8,12 +8,8 @@ const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const { MongoClient, ServerApiVersion, ObjectId, } = require('mongodb');
 
 //middlewere
-app.use(cors({
-    origin: ['http://localhost:5173'],
-    credentials: true,
-}))
+app.use(cors())
 app.use(express.json())
-// app.use(cookieParser())
 
 
 
@@ -35,7 +31,7 @@ async function run() {
 
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
 
         const db = client.db('ComonicationDB')
         const postsCollection = db.collection('posts')
@@ -346,8 +342,8 @@ async function run() {
         })
 
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        // await client.db("admin").command({ ping: 1 });
+        // console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
         // await client.close();
