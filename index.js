@@ -44,7 +44,7 @@ async function run() {
         const AnnouncementCollection = db.collection('Announcements')
         const reportedsCollection = db.collection('reporteds')
         const tagsCollection = db.collection('tags')
-        
+
 
         // user related api 
         const verifyToken = (req, res, next) => {
@@ -82,6 +82,8 @@ async function run() {
             })
             res.send({ token })
         })
+
+
         //ap rel \\
 
         app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
@@ -109,7 +111,7 @@ async function run() {
                 { email },
                 { $set: { Badge: 'Gold' } }
             );
-            
+
             res.send(result)
         });
 
@@ -164,49 +166,49 @@ async function run() {
 
 
         app.get('/posts/popularity', async (req, res) => {
-                const { search = "", sortByPopularity = "false" } = req.query;
-                const page = parseInt(req.query.page) || 0; 
-                const size = parseInt(req.query.size) || 5; 
+            const { search = "", sortByPopularity = "false" } = req.query;
+            const page = parseInt(req.query.page) || 0;
+            const size = parseInt(req.query.size) || 5;
 
-                console.log('Pagination:', { page, size, search, sortByPopularity });
+            console.log('Pagination:', { page, size, search, sortByPopularity });
 
-               
-                const query = search ? { tag: { $regex: search, $options: 'i' } } : {};
 
-                let result;
-                if (sortByPopularity === "true") {
-                   
-                    result = await postsCollection.aggregate([
-                        {
-                            $addFields: {
-                                voteDifference: { $subtract: ["$upVote", "$downVote"] },
-                            },
+            const query = search ? { tag: { $regex: search, $options: 'i' } } : {};
+
+            let result;
+            if (sortByPopularity === "true") {
+
+                result = await postsCollection.aggregate([
+                    {
+                        $addFields: {
+                            voteDifference: { $subtract: ["$upVote", "$downVote"] },
                         },
-                        { $match: query },
-                        { $sort: { voteDifference: -1 } }, 
-                        { $skip: page * size },         
-                        { $limit: size },                 
-                    ]).toArray();
-                } else {
-                    
-                    result = await postsCollection.find(query)
-                        .sort({ carentTime: 1 })           
-                        .skip(page * size)                
-                        .limit(size)                  
-                        .toArray();
-                }
+                    },
+                    { $match: query },
+                    { $sort: { voteDifference: -1 } },
+                    { $skip: page * size },
+                    { $limit: size },
+                ]).toArray();
+            } else {
 
-                   const totalPosts = await postsCollection.countDocuments(query);
+                result = await postsCollection.find(query)
+                    .sort({ carentTime: 1 })
+                    .skip(page * size)
+                    .limit(size)
+                    .toArray();
+            }
 
-                res.send({
-                    posts: result,
-                    totalPosts,
-                });
-            
+            const totalPosts = await postsCollection.countDocuments(query);
+
+            res.send({
+                posts: result,
+                totalPosts,
+            });
+
         });
         //get the single data 
 
-        app.get('/posts', async(req, res)=>{
+        app.get('/posts', async (req, res) => {
             const result = await postsCollection.find().toArray();
             res.send(result)
         })
@@ -265,7 +267,7 @@ async function run() {
 
         //comment related api 
 
-        app.get('/comments',  async (req, res) => {
+        app.get('/comments', async (req, res) => {
             const result = await commentsCollection.find().toArray();
             res.send(result)
         })
@@ -274,7 +276,14 @@ async function run() {
             res.send(result)
         })
 
-        app.post('/reported', async (req, res) => {
+        app.delete('/reported/:id', async(req, res)=>{
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)}
+            const result = await reportedsCollection.deleteOne(query);
+            res.send(result)
+        })
+
+        app.post('/reported', verifyToken, async (req, res) => {
             const query = req.body;
             const result = await reportedsCollection.insertOne(query)
             res.send(result)
@@ -333,16 +342,16 @@ async function run() {
 
 
         // tag 
-        app.get('/tags', async(req, res)=>{
+        app.get('/tags', async (req, res) => {
             const result = await tagsCollection.find().toArray()
             res.send(result)
         })
 
-    app.post('/tags', async(req, res)=>{
-        const query = req.body;
-        const result = await tagsCollection.insertOne(query);
-        res.send(result)
-    })
+        app.post('/tags', async (req, res) => {
+            const query = req.body;
+            const result = await tagsCollection.insertOne(query);
+            res.send(result)
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
