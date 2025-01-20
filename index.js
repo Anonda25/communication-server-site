@@ -85,8 +85,10 @@ async function run() {
         //ap rel \\
 
         app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
+            const { name } = req.query;
+            const query = name ? { name: { $regex: name, $options: 'i' } } : {};
 
-            const result = await usersCollection.find().toArray()
+            const result = await usersCollection.find(query).toArray()
             res.send(result)
         })
 
@@ -263,11 +265,11 @@ async function run() {
 
         //comment related api 
 
-        app.get('/comments', verifyToken, async (req, res) => {
+        app.get('/comments',  async (req, res) => {
             const result = await commentsCollection.find().toArray();
             res.send(result)
         })
-        app.get('/reported', verifyToken, async (req, res) => {
+        app.get('/reported', async (req, res) => {
             const result = await reportedsCollection.find().toArray();
             res.send(result)
         })
